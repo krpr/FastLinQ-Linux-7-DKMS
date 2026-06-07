@@ -100,7 +100,7 @@ modinfo qede | grep filename
 For repeatable deployment on Debian/Ubuntu hosts, build a local DKMS `.deb`:
 
 ```sh
-./scripts/build-dkms-deb.sh
+make deb
 ```
 
 The generated package is written to `dist/`, for example:
@@ -119,6 +119,8 @@ This package installs the driver source into `/usr/src/qlgc-fastlinq-8.70.12.0`,
 installs the required `qed` firmware and udev files, and runs DKMS to compile
 and install `qed`, `qede` and `qedr` for the running kernel. It does not ship
 prebuilt `.ko` files, because those are tied to one exact kernel build.
+
+See `PACKAGING.md` for the maintained package build and release flow.
 
 ## Kernel updates
 

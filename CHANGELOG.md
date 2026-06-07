@@ -15,6 +15,8 @@ Initial maintenance baseline for Linux 7.0 on Debian/Ubuntu.
   staged-install and kernel-update workflows.
 - Added `scripts/build-dkms-deb.sh` for building a local Debian/Ubuntu DKMS
   source package.
+- Added fixed package build entry points through `make deb`, `make package`,
+  `make deb-info` and `PACKAGING.md`.
 - Added top-level `WITH_STORAGE` switch. The default maintained module set is
   now `qed`, `qede` and `qedr`; storage offload modules can be attempted with
   `WITH_STORAGE=1`.

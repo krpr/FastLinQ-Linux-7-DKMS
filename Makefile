@@ -1,5 +1,10 @@
 PACKAGE_NAME := qlgc-fastlinq
 PACKAGE_VERSION := 8.70.12.0
+DEB_PACKAGE ?= $(PACKAGE_NAME)-dkms
+DEB_VERSION ?= $(PACKAGE_VERSION)-linux7maint1
+DEB_ARCH ?= all
+DEB_MAINTAINER ?= FastLinQ Maintainers <root@localhost>
+DEB_FILE := $(CURDIR)/dist/$(DEB_PACKAGE)_$(DEB_VERSION)_$(DEB_ARCH).deb
 QED_DIR := $(CURDIR)/qed-8.70.12.0/src/
 QEDE_DIR := $(CURDIR)/qede-8.70.12.0/src/
 QEDR_DIR := $(CURDIR)/qedr-8.70.12.0/src/
@@ -23,7 +28,7 @@ else
     LIBQEDR_CONFIGURE_CMD := ./configure --prefix=/usr --libdir=${exec_prefix}/lib --sysconfdir=/etc
 endif
 
-.PHONY: subsystem udev_install udev_uninstall install light_install clean libqedr_uninstall libqedr libqedr_install libqedr_clean
+.PHONY: subsystem udev_install udev_uninstall install light_install clean deb package deb-info deb-path libqedr_uninstall libqedr libqedr_install libqedr_clean
 
 ADDONS_DIR := add-ons
 
@@ -52,6 +57,20 @@ clean:
 	@for dir in $(SUBDIRS); do			\
 		$(MAKE) -C $$dir clean || exit 1;	\
 	done
+
+deb package:
+	@DEB_PACKAGE="$(DEB_PACKAGE)" \
+	DEB_VERSION="$(DEB_VERSION)" \
+	DEB_ARCH="$(DEB_ARCH)" \
+	DEB_MAINTAINER="$(DEB_MAINTAINER)" \
+		$(CURDIR)/scripts/build-dkms-deb.sh
+
+deb-info:
+	@dpkg-deb -I "$(DEB_FILE)"
+	@dpkg-deb -c "$(DEB_FILE)" | sed -n '1,80p'
+
+deb-path:
+	@echo "$(DEB_FILE)"
 
 libqedr_uninstall:
 	- rm -f /etc/libibverbs.d/qedr.driver

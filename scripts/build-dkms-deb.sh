@@ -4,10 +4,12 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_root"
 
-if ! command -v dpkg-deb >/dev/null 2>&1; then
-	echo "dpkg-deb is required to build the package" >&2
-	exit 1
-fi
+for tool in dpkg-deb md5sum rsync tar; do
+	if ! command -v "$tool" >/dev/null 2>&1; then
+		echo "$tool is required to build the package" >&2
+		exit 1
+	fi
+done
 
 dkms_name=$(sed -n 's/^PACKAGE_NAME="\([^"]*\)".*/\1/p' dkms.conf)
 dkms_version=$(sed -n 's/^PACKAGE_VERSION="\([^"]*\)".*/\1/p' dkms.conf)
@@ -33,6 +35,38 @@ firmware_root="$pkg_root/lib/firmware/qed"
 udev_rules_root="$pkg_root/etc/udev/rules.d"
 udev_script_root="$pkg_root/lib/udev"
 dist_dir="$repo_root/dist"
+
+validate_deb() {
+	local deb_path=$1
+	local control_check=$tmp_root/control-check
+	local members_file=$tmp_root/package-members
+	local member=
+
+	mkdir -p "$control_check"
+	dpkg-deb -e "$deb_path" "$control_check"
+	sh -n "$control_check/postinst"
+	sh -n "$control_check/prerm"
+	sh -n "$control_check/postrm"
+
+	dpkg-deb --fsys-tarfile "$deb_path" | tar -tf - > "$members_file"
+	for member in \
+		"./usr/src/${dkms_name}-${dkms_version}/dkms.conf" \
+		"./usr/src/${dkms_name}-${dkms_version}/Makefile" \
+		"./usr/src/${dkms_name}-${dkms_version}/qed-8.70.12.0/src/qed_main.c" \
+		"./usr/src/${dkms_name}-${dkms_version}/qede-8.70.12.0/src/qede_main.c" \
+		"./usr/src/${dkms_name}-${dkms_version}/qedr-8.70.12.0/src/main.c" \
+		"./lib/firmware/qed/qed_init_values-8.70.4.0.bin" \
+		"./lib/firmware/qed/qed_init_values_zipped-8.70.4.0.bin" \
+		"./etc/udev/rules.d/99-qed.rules" \
+		"./lib/udev/qed_udev_dbg.sh" \
+		"./usr/share/doc/${deb_package}/INSTALL.md" \
+		"./usr/share/doc/${deb_package}/PACKAGING.md"; do
+		if ! grep -Fx "$member" "$members_file" >/dev/null; then
+			echo "package validation failed: missing $member" >&2
+			exit 1
+		fi
+	done
+}
 
 mkdir -p "$control_dir" "$src_root" "$doc_root" "$firmware_root" \
 	"$udev_rules_root" "$udev_script_root" "$dist_dir"
@@ -66,6 +100,7 @@ done
 install -m 0644 COPYING "$doc_root/copyright"
 install -m 0644 INSTALL.md "$doc_root/INSTALL.md"
 install -m 0644 DKMS.md "$doc_root/DKMS.md"
+install -m 0644 PACKAGING.md "$doc_root/PACKAGING.md"
 install -m 0644 CHANGELOG.md "$doc_root/changelog"
 
 cat > "$control_dir/control" <<EOF
@@ -168,15 +203,25 @@ exit 0
 EOF
 
 chmod 0755 "$control_dir/postinst" "$control_dir/prerm" "$control_dir/postrm"
+(
+	cd "$pkg_root"
+	find . -path './DEBIAN' -prune -o -type f -print0 |
+		sort -z |
+		while IFS= read -r -d '' path; do
+			md5sum "${path#./}"
+		done
+) > "$control_dir/md5sums"
 find "$pkg_root" -type d -exec chmod 0755 {} +
 find "$src_root" -type f -exec chmod 0644 {} +
 find "$src_root" -type f -name '*.sh' -exec chmod 0755 {} +
 chmod 0644 "$control_dir/control"
+chmod 0644 "$control_dir/md5sums"
 chmod 0755 "$control_dir/postinst" "$control_dir/prerm" "$control_dir/postrm"
 chmod 0644 "$udev_rules_root/99-qed.rules" "$firmware_root"/*.bin
 chmod 0755 "$udev_script_root/qed_udev_dbg.sh"
 
 deb_path="$dist_dir/${deb_package}_${deb_version}_${deb_arch}.deb"
 dpkg-deb --root-owner-group --build "$pkg_root" "$deb_path"
+validate_deb "$deb_path"
 
 echo "$deb_path"
