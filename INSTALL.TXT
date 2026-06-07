@@ -10,6 +10,9 @@ For the maintained Debian/Ubuntu Linux 7.0 workflow, including DKMS and
 kernel-update handling, read INSTALL.md first. This legacy file is kept for
 package compatibility and short-form reference.
 
+Read NOTICE.md for original QLogic/Cavium notices and the 2026 maintenance
+attribution for this maintained fork.
+
 
 Table of Contents
 =================

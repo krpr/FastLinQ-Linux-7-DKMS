@@ -12,6 +12,10 @@ depend on FCoE/iSCSI and SCSI kernel APIs which changed substantially in Linux
 7.0, so treat them as not maintained in this branch unless they are explicitly
 ported and tested.
 
+Read `NOTICE.md` for copyright, license and 2026 maintenance attribution
+notes. Keep the original QLogic/Cavium notices and `COPYING` intact when
+redistributing this driver.
+
 ## Requirements
 
 Install the build tools and headers for the target kernel:

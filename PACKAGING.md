@@ -3,6 +3,10 @@
 This is the maintained package flow for Debian/Ubuntu systems. The package is
 a DKMS source package, not a prebuilt kernel-module package.
 
+Before publishing a package, review `NOTICE.md` and keep the original
+QLogic/Cavium notices plus the 2026 maintenance attribution in the distributed
+source and package documentation.
+
 ## Build requirements
 
 Install package build tools on the build host:
