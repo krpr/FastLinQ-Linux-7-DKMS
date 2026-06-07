@@ -5,6 +5,30 @@
  *  See LICENSE.qedi for copyright and licensing details.
  */
 
+#include <linux/string.h>
+
+#ifdef _NEED_STRLCPY
+static inline size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t src_len = strlen(src);
+
+	if (size) {
+		size_t len = src_len >= size ? size - 1 : src_len;
+
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+
+	return src_len;
+}
+#endif
+
+#ifdef _HAS_CONST_BIN_ATTR
+#define QED_CONST_BIN_ATTR const
+#else
+#define QED_CONST_BIN_ATTR
+#endif
+
 #ifndef ETHER_ADDR_COPY
 /**
  ** ether_addr_copy - Copy an Ethernet address

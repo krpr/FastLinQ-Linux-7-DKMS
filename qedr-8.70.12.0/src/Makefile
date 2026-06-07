@@ -1,3 +1,6 @@
+ifeq ($(QED_DIR),)
+	override QED_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/../../qed-8.70.12.0/src
+endif
 ifeq ($(QEDE_DIR),)
 	override QEDE_DIR = $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))/../../qede-8.70.12.0/src
 endif
@@ -236,6 +239,12 @@ endif
 ifneq ($(shell echo 'int main(){return 0;}' | gcc -x c $(THUNK_OPTIONS) - 2>/dev/null && echo thunk),)
 	override EXTRA_CFLAGS += $(THUNK_OPTIONS)
 endif
+ifeq ($(shell grep -w "strlcpy" $(LINUXSRC)/include/linux/string.h > /dev/null 2>&1 && echo strlcpy),)
+	override EXTRA_CFLAGS += -D_NEED_STRLCPY
+endif
+ifneq ($(shell grep "const struct bin_attribute" $(LINUXSRC)/include/linux/sysfs.h > /dev/null 2>&1 && echo const_bin_attr),)
+	override EXTRA_CFLAGS += -D_HAS_CONST_BIN_ATTR
+endif
 
 DRV_VER_SUFFIX = "-"${USER}
 EXTRA_CFLAGS += -DQEDR_MOD_VER=\"$(DRV_VER_SUFFIX)\"
@@ -428,6 +437,9 @@ endif
 
 ifneq ($(shell grep -A6 -e "^struct ib_cq \*ib_create_cq" -e "define ib_create_cq" $(ib_verbs_h) | grep -e ib_cq_init_attr -e cq_attr > /dev/null 2>&1 && echo compact_create_cq),)
         override EXTRA_CFLAGS += -DDEFINE_CREATE_CQ_ATTR
+endif
+ifneq ($(shell grep -A2 "(\*create_cq)" $(ib_verbs_h) | grep "struct uverbs_attr_bundle" > /dev/null 2>&1 && echo create_cq_uverbs_attrs),)
+        override EXTRA_CFLAGS += -D_HAS_CREATE_CQ_UVERBS_ATTRS
 endif
 
 ifneq ($(shell grep "int (\*\create_cq)" $(ib_verbs_h)  > /dev/null 2>&1 && echo has_cq_allocation),)
@@ -688,6 +700,9 @@ endif
 ifeq ($(shell grep "iommu_present" $(LINUXSRC)/include/linux/iommu.h > /dev/null 2>&1 && echo iommu_present),)
 	override EXTRA_CFLAGS += -DNOT_DEFINED_IOMMU_PRESENT
 endif
+ifneq ($(shell grep -A4 "(\*reg_user_mr)" $(ib_verbs_h) | grep "struct ib_dmah" > /dev/null 2>&1 && echo reg_user_mr_dmah),)
+	override EXTRA_CFLAGS += -D_HAS_REG_USER_MR_DMAH
+endif
 
 ifneq ($(shell grep "ifname" $(LINUXSRC)/include/rdma/iw_cm.h > /dev/null 2>&1 && echo ifname),)
 	override EXTRA_CFLAGS += -DDEFINED_IW_IFNAME
@@ -707,6 +722,9 @@ endif
 
 ifneq ($(shell grep -w "ip_route_output" $(LINUXSRC)/include/net/route.h > /dev/null 2>&1 && echo ip_route_output),)
 	override EXTRA_CFLAGS += -DDEFINE_IP_ROUTE_OUTPUT
+endif
+ifneq ($(shell grep -A8 "ip_route_output" $(LINUXSRC)/include/net/route.h | grep "__u8 scope" > /dev/null 2>&1 && echo ip_route_output_scope),)
+	override EXTRA_CFLAGS += -D_HAS_IP_ROUTE_OUTPUT_SCOPE
 endif
 
 ifneq ($(shell grep "flowi6" $(LINUXSRC)/include/net/ip6_route.h > /dev/null 2>&1 && echo ip6_route_output),)
@@ -889,19 +907,19 @@ endif
 
  override EXTRA_CFLAGS += -D_HAS_PTPTIME64
 
-all default: $(obj-m)
+ccflags-y += $(EXTRA_CFLAGS)
 
-$(obj-m): $(SOURCES)
+all default:
 	@if [ "$(OOB_OFED)" = "1" ];\
 		then echo -e "\n\n**** Compiling for OOB OFED version $(OFED_VERSION) ******\n\n"; \
 	else echo -e "\n\n****** Compiling for INBOX OFED ******\n\n"; \
 	fi
 	
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` $(OOB_OFED_PATH)
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) $(OOB_OFED_PATH)
 
 
-modules_install: $(obj-m)
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install 2>&1 | grep -v depmod
+modules_install: all
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install 2>&1 | grep -v depmod
 	@if [ "$(sles_distro)" = "" -a "$(ubuntu_distro)" = "" ]; then \
 		echo "override qedr * $(DRV_DIR)" > qedr.conf ;\
 		install -m 644 -D qedr.conf $(PREFIX)/etc/depmod.d/qedr.conf ;\
@@ -911,8 +929,10 @@ modules_install: $(obj-m)
 		else echo " *** Run '/sbin/depmod -a' to update the module database." ;\
 	fi
 
-initramfs_install: $(obj-m)
-	@if [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qedr.ko`" ] ; then\
+initramfs_install: all
+	@if [ "$(PREFIX)" != "" ]; then \
+		echo " *** Skipping initramfs update for staged install." ;\
+	elif [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qedr.ko`" ] ; then\
 		echo "back up initrd to /boot/initramfs-$(KVER).img.bak" ;\
 		cp /boot/initramfs-$(KVER).img /boot/initramfs-$(KVER).img.bak ;\
 		echo "add driver qedr to initrd" ;\
@@ -931,7 +951,7 @@ initramfs_install: $(obj-m)
 #	install -m 644 qedr.4.gz $(MAN_DIR)
 
 clean:
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` clean
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) clean
 
 clobber: clean
 

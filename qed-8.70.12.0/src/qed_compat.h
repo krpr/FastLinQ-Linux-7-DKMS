@@ -35,12 +35,46 @@
 #include <linux/version.h>
 #include <linux/skbuff.h>
 #include <linux/list.h>
+#include <linux/string.h>
 #ifdef _HAS_DEVLINK
 #include <net/devlink.h>
 #endif
 
 #define HAS_NDO(feat) \
 	(defined(_HAS_NDO_ ## feat) || defined (_HAS_NDO_EXT_ ## feat))
+
+#ifdef _NEED_STRLCPY
+static inline size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t src_len = strlen(src);
+
+	if (size) {
+		size_t len = src_len >= size ? size - 1 : src_len;
+
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+
+	return src_len;
+}
+#endif
+
+#ifdef _HAS_CONST_BIN_ATTR
+#define QED_CONST_BIN_ATTR const
+#else
+#define QED_CONST_BIN_ATTR
+#endif
+
+#ifndef _HAS_PCIE_ERROR_REPORTING
+static inline int pci_enable_pcie_error_reporting(struct pci_dev *pdev)
+{
+	return 0;
+}
+
+static inline void pci_disable_pcie_error_reporting(struct pci_dev *pdev)
+{
+}
+#endif
 
 #ifndef RHEL_RELEASE_VERSION
 #define RHEL_RELEASE_VERSION(a, b) 0

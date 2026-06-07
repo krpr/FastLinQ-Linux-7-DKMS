@@ -20140,7 +20140,7 @@ static ssize_t qed_sysfs_cmd_write(const char __user * buffer,
 				   const struct qed_func_lookup *lookup,
 				   int num_funcs, bool from_user, bool is_hsi,
 				   bool is_tests,
-				   struct bin_attribute *bin_attr)
+				   QED_CONST_BIN_ATTR struct bin_attribute *bin_attr)
 {
 	enum dbg_status rc = 100;
 	struct qed_hwfn *p_hwfn;
@@ -21440,7 +21440,8 @@ qed_debugfs_fileops(all_data);
 #ifdef _HAS_SYSFS_BIN_ATTR_INIT
 #ifndef QED_UPSTREAM		/* ! QED_UPSTREAM */
 static ssize_t sysfs_show(struct file *filp, struct kobject *kobp,
-			  struct bin_attribute *bin_attr, char *buf,
+			  QED_CONST_BIN_ATTR struct bin_attribute *bin_attr,
+			  char *buf,
 			  loff_t pos, size_t count)
 {
 	struct qed_dev *cdev = (struct qed_dev *)bin_attr->private;
@@ -21478,7 +21479,8 @@ static ssize_t sysfs_show(struct file *filp, struct kobject *kobp,
 }
 
 static ssize_t sysfs_store(struct file *filp, struct kobject *kobj,
-			   struct bin_attribute *bin_attr, char *buf,
+			   QED_CONST_BIN_ATTR struct bin_attribute *bin_attr,
+			   char *buf,
 			   loff_t pos, size_t count)
 {
 	if (strcmp(bin_attr->attr.name, "tests") == 0) {

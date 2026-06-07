@@ -88,6 +88,13 @@ static int qede_ptp_adjfreq(struct ptp_clock_info *info, s32 ppb)
 	return rc;
 }
 
+#ifdef _HAS_PTP_CLOCK_INFO_ADJFINE
+static int qede_ptp_adjfine(struct ptp_clock_info *info, long scaled_ppm)
+{
+	return qede_ptp_adjfreq(info, scaled_ppm_to_ppb(scaled_ppm));
+}
+#endif
+
 static int qede_ptp_adjtime(struct ptp_clock_info *info, s64 delta)
 {
 	struct qede_dev *edev;
@@ -242,9 +249,19 @@ static void qede_ptp_task(struct work_struct *work)
 
 /* Read the PHC. This API is invoked with ptp_lock held. */
 #ifdef _HAS_REMOVED_CYCLE_T /* QEDE_UPSTREAM */
-static u64 qede_ptp_read_cc(const struct cyclecounter *cc)
+static u64 qede_ptp_read_cc(
+#ifdef _HAS_CYCLECOUNTER_READ_NONCONST
+			    struct cyclecounter *cc)
 #else
-static cycle_t qede_ptp_read_cc(const struct cyclecounter *cc)
+			    const struct cyclecounter *cc)
+#endif
+#else
+static cycle_t qede_ptp_read_cc(
+#ifdef _HAS_CYCLECOUNTER_READ_NONCONST
+				struct cyclecounter *cc)
+#else
+				const struct cyclecounter *cc)
+#endif
 #endif
 {
 	struct qede_dev *edev;
@@ -389,7 +406,12 @@ int qede_ptp_hw_ts(struct qede_dev *edev, struct ifreq *ifr)
 			    sizeof(config)) ? -EFAULT : 0;
 }
 
-int qede_ptp_get_ts_info(struct qede_dev *edev, struct ethtool_ts_info *info)
+int qede_ptp_get_ts_info(struct qede_dev *edev,
+#ifdef _HAS_KERNEL_ETHTOOL_TS_INFO
+			 struct kernel_ethtool_ts_info *info)
+#else
+			 struct ethtool_ts_info *info)
+#endif
 {
 	struct qede_ptp *ptp = edev->ptp;
 
@@ -535,7 +557,11 @@ int qede_ptp_enable(struct qede_dev *edev)
 	ptp->clock_info.n_ext_ts = 0;
 	ptp->clock_info.n_per_out = 0;
 	ptp->clock_info.pps = 0;
+#ifdef _HAS_PTP_CLOCK_INFO_ADJFINE
+	ptp->clock_info.adjfine = qede_ptp_adjfine;
+#else
 	ptp->clock_info.adjfreq = qede_ptp_adjfreq;
+#endif
 	ptp->clock_info.adjtime = qede_ptp_adjtime;
 #ifdef _HAS_PTPTIME64 /* QEDE_UPSTREAM */
 	ptp->clock_info.gettime64 = qede_ptp_gettime;

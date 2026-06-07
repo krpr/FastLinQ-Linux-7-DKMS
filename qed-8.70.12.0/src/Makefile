@@ -384,8 +384,17 @@ endif
 ifneq ($(shell grep "get_random_bytes" $(LINUXSRC)/include/linux/random.h > /dev/null 2>&1 && echo get_random_bytes),)
 	override EXTRA_CFLAGS += -D_HAS_ETH_RANDOM_BYTES
 endif
-ifneq ($(shell grep "time_t" $(LINUXSRC)/include/linux/types.h > /dev/null 2>&1 && echo time_t),)
+ifneq ($(shell grep -w "time_t" $(LINUXSRC)/include/linux/types.h > /dev/null 2>&1 && echo time_t),)
 	override EXTRA_CFLAGS += -D_HAS_TIME_T
+endif
+ifeq ($(shell grep -w "strlcpy" $(LINUXSRC)/include/linux/string.h > /dev/null 2>&1 && echo strlcpy),)
+	override EXTRA_CFLAGS += -D_NEED_STRLCPY
+endif
+ifneq ($(shell grep -w "pci_enable_pcie_error_reporting" $(LINUXSRC)/include/linux/aer.h > /dev/null 2>&1 && echo pcie_err),)
+	override EXTRA_CFLAGS += -D_HAS_PCIE_ERROR_REPORTING
+endif
+ifneq ($(shell grep "const struct bin_attribute" $(LINUXSRC)/include/linux/sysfs.h > /dev/null 2>&1 && echo const_bin_attr),)
+	override EXTRA_CFLAGS += -D_HAS_CONST_BIN_ATTR
 endif
 ifneq ($(shell grep "time_to_tm" $(LINUXSRC)/include/linux/time.h > /dev/null 2>&1 && echo time_to_tm),)
 	override EXTRA_CFLAGS += -D_HAS_TIME_TO_TM
@@ -416,6 +425,7 @@ ifneq ($(shell grep "mmiowb_spin_lock" $(LINUXSRC)/include/asm-generic/mmiowb.h 
 	override EXTRA_CFLAGS += -D_HAS_MMIOWB_SPIN_LOCK
 endif
 
+ifneq ($(shell if [ $(shell echo $(KVER) | cut -d. -f1) -lt 7 ]; then echo devlink_compat; fi),)
 ifneq ($(shell grep "devlink_health_reporter_ops" $(LINUXSRC)/include/net/devlink.h > /dev/null 2>&1 && echo devlink_health_reporter_ops),)
         override EXTRA_CFLAGS += -D_HAS_DEVLINK
 	qed-objs += qed_devlink.o
@@ -426,6 +436,7 @@ endif
 
 ifneq ($(shell grep -s -A3 "devlink_health_reporter_create" $(LINUXSRC)/include/net/devlink.h | grep auto_recover > /dev/null 2>&1 && echo auto_recover),)
         override EXTRA_CFLAGS += -D_HAS_DEVLINK_AUTO_RECOVER
+endif
 endif
 
 ifneq ($(shell grep "get_fs" $(LINUXSRC)/arch/x86/include/asm/uaccess.h > /dev/null 2>&1 && echo get_fs),)
@@ -471,15 +482,15 @@ ifneq ($(shell awk '/struct pci_msi_desc.{/,/^}/'  $(LINUXSRC)/include/linux/msi
         override EXTRA_CFLAGS += -D_PCI_MSI_DESC_HAS_MASK_BASE
 endif
 
-all default: $(obj-m)
+ccflags-y += $(EXTRA_CFLAGS)
+
+all default:
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) modules
 
 candidate: $(SOURCES)
 
-$(obj-m): $(SOURCES)
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` modules
-
-modules_install: $(obj-m)
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install  2>&1 | grep -v depmod
+modules_install: all
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install  2>&1 | grep -v depmod
 	$(AT)if [ "$(sles_distro)" = "" -a "$(ubuntu_distro)" = "" ]; then \
 		echo "override qed * $(DRV_DIR)" > qed.conf ;\
 		install -m 644 -D qed.conf $(PREFIX)/etc/depmod.d/qed.conf ;\
@@ -489,8 +500,10 @@ modules_install: $(obj-m)
 		else echo " *** Run '/sbin/depmod -a' to update the module database." ;\
 	fi
 
-initramfs_install: $(obj-m)
-	$(AT)if [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qed.ko`" ] ; then\
+initramfs_install: all
+	$(AT)if [ "$(PREFIX)" != "" ]; then \
+		echo " *** Skipping initramfs update for staged install." ;\
+	elif [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qed.ko`" ] ; then\
 		echo "back up initrd to /boot/initramfs-$(KVER).img.bak" ;\
 		cp /boot/initramfs-$(KVER).img /boot/initramfs-$(KVER).img.bak ;\
 		echo "add driver qed to initrd" ;\
@@ -519,7 +532,7 @@ initramfs_install: $(obj-m)
 #	install -m 644 qede.4.gz $(MAN_DIR)
 
 clean:
-	$(AT)make -C $(KERNEL_DIR) M=`pwd` clean
+	$(AT)make -C $(KERNEL_DIR) M=$(CURDIR) clean
 
 fw_install: common_hsi.h qed_init_values_zipped.bin qed_init_values.bin
 	mkdir -p $(FW_DIR)

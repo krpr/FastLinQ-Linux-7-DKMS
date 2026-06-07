@@ -83,6 +83,12 @@ DEFINES += $(call set-def,UNBIND_CONN,scsi/scsi_transport_iscsi.h,unbind_conn)
 DEFINES += $(call set-def,ISCSI_TASK_IS_COMPLETED,scsi/libiscsi.h,iscsi_task_is_completed)
 DEFINES += $(call set-def,FRWD_LOCK,scsi/libiscsi.h,frwd_lock)
 DEFINES += $(call set-def,IS_SHUTDOWN,scsi/libiscsi.h,is_shutdown)
+ifeq ($(shell grep -w "strlcpy" $(INC_DIR)/linux/string.h > /dev/null 2>&1 && echo strlcpy),)
+DEFINES += _NEED_STRLCPY
+endif
+ifneq ($(shell grep "const struct bin_attribute" $(INC_DIR)/linux/sysfs.h > /dev/null 2>&1 && echo const_bin_attr),)
+DEFINES += _HAS_CONST_BIN_ATTR
+endif
 
 ifeq ($(ERROR_INJECT), 1)
 DEFINES += ERROR_INJECT
@@ -162,11 +168,13 @@ NPROCS:=$(shell grep -c ^processor /proc/cpuinfo)
 DRACUT:=$(shell which dracut 2>/dev/null)
 UPDATE_INITRAMFS:=$(shell which update-initramfs 2>/dev/null)
 
+ccflags-y += $(EXTRA_CFLAGS)
+
 .PHONY: build_pre sparse sparse_endian smatch modules_install install
 
 KBUILD_EXTRA_SYMBOLS := $(QED_DIR)/Module.symvers
 build: build_pre
-	make -C $(KERN_VER_DIR)/build -j$(NPROCS) M=`pwd` modules
+	make -C $(KERN_VER_DIR)/build -j$(NPROCS) M=$(CURDIR) modules
 
 build_pre:
 	cp -f ../qed-8.70.12.0/src/Module.symvers .
@@ -193,10 +201,10 @@ smatch: build_pre
 clean:
 	rm -f Module.symvers
 	rm -f modules.order
-	make -C $(KERN_VER_DIR)/build M=`pwd` clean
+	make -C $(KERN_VER_DIR)/build M=$(CURDIR) clean
 
 install: build
-	make -C $(KERN_VER_DIR)/build M=`pwd` INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install
+	make -C $(KERN_VER_DIR)/build M=$(CURDIR) INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install
 
 ifeq ("$(REDHAT)","Red Hat")
 	@echo "override qedi * $(DRV_DIR)" > qedi.conf ;
@@ -208,17 +216,23 @@ endif
 		else echo " *** Run '/sbin/depmod -a' to update the module database." ;\
 	fi
 
-	@if [ -f "$(BOOTDIR)/initrd-$(K_VERSION).img" ]; then \
+	@if [ "$(PREFIX)" != "" ]; then \
+		echo " *** Skipping initramfs update for staged install."; \
+	elif [ -f "$(BOOTDIR)/initrd-$(K_VERSION).img" ]; then \
 		cp $(BOOTDIR)/initrd-$(K_VERSION).img $(BOOTDIR)/initrd-$(K_VERSION).bak.img; \
 	fi \
 
-	@if [ -f "$(BOOTDIR)/initramfs-$(K_VERSION).img" ]; then \
+	@if [ "$(PREFIX)" = "" ] && [ -f "$(BOOTDIR)/initramfs-$(K_VERSION).img" ]; then \
 		cp $(BOOTDIR)/initramfs-$(K_VERSION).img $(BOOTDIR)/initramfs-$(K_VERSION).bak.img; \
 	fi \
 
-	@echo "Adding driver QEDI to INITRD image, rebuilding INITRD image"
+	@if [ "$(PREFIX)" = "" ]; then \
+		echo "Adding driver QEDI to INITRD image, rebuilding INITRD image"; \
+	fi
 
-	@if [ -f "$(DRACUT)" ] && [ -f "$(BOOTDIR)/initramfs-$(K_VERSION).img" ]; then \
+	@if [ "$(PREFIX)" != "" ]; then \
+		: ;\
+	elif [ -f "$(DRACUT)" ] && [ -f "$(BOOTDIR)/initramfs-$(K_VERSION).img" ]; then \
 		dracut -f --add-drivers qedi ;\
 	elif [ -f "$(UPDATE_INITRAMFS)" ]; then\
 		update-initramfs -u;\

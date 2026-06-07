@@ -3232,8 +3232,8 @@ static void qede_napi_add_enable(struct qede_dev *edev)
 
 	/* Add NAPI objects */
 	for_each_queue(i) {
-		netif_napi_add(edev->ndev, &edev->fp_array[i].napi,
-			       qede_poll, NAPI_POLL_WEIGHT);
+		QEDE_NETIF_NAPI_ADD(edev->ndev, &edev->fp_array[i].napi,
+				    qede_poll, NAPI_POLL_WEIGHT);
 		napi_enable(&edev->fp_array[i].napi);
 	}
 }

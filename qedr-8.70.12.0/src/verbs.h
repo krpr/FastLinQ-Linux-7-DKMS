@@ -96,8 +96,12 @@ COMPAT_CREATE_CQ_DECLARE_RET
 qedr_create_cq(COMPAT_CREATE_CQ_IBDEV(struct ib_device *ibdev)
 	       COMPAT_CREATE_CQ_CQ(struct ib_cq *ibcq)
 	       const struct ib_cq_init_attr *attr,
+#ifdef _HAS_CREATE_CQ_UVERBS_ATTRS
+	       struct uverbs_attr_bundle *attrs);
+#else
 	       COMPAT_CREATE_CQ_CTX(struct ib_ucontext *ib_ctx)
 	       struct ib_udata *udata);
+#endif
 #else
 struct ib_cq *qedr_create_cq(struct ib_device *, int entries, int vector,
 			       struct ib_ucontext *, struct ib_udata *);
@@ -168,7 +172,11 @@ struct ib_mr *qedr_reg_kernel_mr(struct ib_pd *,
 
 #ifdef DEFINE_USER_NO_MR_ID /* QEDR_UPSTREAM */
 struct ib_mr *qedr_reg_user_mr(struct ib_pd *, u64 start, u64 length,
-			       u64 virt, int acc, struct ib_udata *);
+			       u64 virt, int acc,
+#ifdef _HAS_REG_USER_MR_DMAH
+			       struct ib_dmah *dmah,
+#endif
+			       struct ib_udata *);
 #else
 struct ib_mr *qedr_reg_user_mr(struct ib_pd *, u64 start, u64 length,
 			       u64 virt, int acc, struct ib_udata *,

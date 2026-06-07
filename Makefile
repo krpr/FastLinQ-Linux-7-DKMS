@@ -4,9 +4,15 @@ QEDR_DIR := ${PWD}/qedr-8.70.12.0/src/
 QEDF_DIR := ${PWD}/qedf-8.70.12.0
 QEDI_DIR := ${PWD}/qedi-8.70.12.0
 LIBQEDR_DIR := ${PWD}//
-SUBDIRS := $(QED_DIR) $(QEDE_DIR) $(QEDR_DIR) $(QEDF_DIR) $(QEDI_DIR)
+WITH_STORAGE ?= 0
+DISABLE_WERROR ?= 1
+SUBDIRS := $(QED_DIR) $(QEDE_DIR) $(QEDR_DIR)
+ifneq ($(WITH_STORAGE),0)
+SUBDIRS += $(QEDF_DIR) $(QEDI_DIR)
+endif
 export QED_DIR
 export QEDE_DIR
+export DISABLE_WERROR
 
 UBUNTU_DISTRO := $(shell lsb_release -is 2> /dev/null | grep Ubuntu)
 ifeq ($(UBUNTU_DISTRO),)
@@ -25,10 +31,10 @@ subsystem:
 	done
 
 udev_install:
-	@ - $(ADDONS_DIR)/udev/udev_install.sh --install
+	@ - DESTDIR=$(PREFIX) bash $(ADDONS_DIR)/udev/udev_install.sh --install
 
 udev_uninstall:
-	@ - $(ADDONS_DIR)/udev/udev_install.sh --uninstall
+	@ - DESTDIR=$(PREFIX) bash $(ADDONS_DIR)/udev/udev_install.sh --uninstall
 
 install: udev_install
 	@for dir in $(SUBDIRS); do			\

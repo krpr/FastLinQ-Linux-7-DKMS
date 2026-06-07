@@ -50,7 +50,7 @@
 #if DEFINE_ROCE_GID_TABLE /* QEDR_UPSTREAM */
 #include <rdma/ib_cache.h>
 #endif
-#ifndef _HAS_IB_CONTEXT
+#if !defined(_HAS_IB_CONTEXT) || defined(_HAS_CREATE_CQ_UVERBS_ATTRS)
 #include <rdma/uverbs_ioctl.h>
 #endif
 
@@ -1604,8 +1604,12 @@ COMPAT_CREATE_CQ_DECLARE_RET
 qedr_create_cq(COMPAT_CREATE_CQ_IBDEV(struct ib_device *ibdev)
 	       COMPAT_CREATE_CQ_CQ(struct ib_cq *ibcq)
 	       const struct ib_cq_init_attr *attr,
+#ifdef _HAS_CREATE_CQ_UVERBS_ATTRS
+	       struct uverbs_attr_bundle *attrs)
+#else
 	       COMPAT_CREATE_CQ_CTX(struct ib_ucontext *ib_ctx)
 	       struct ib_udata *udata)
+#endif
 #else
 struct ib_cq *qedr_create_cq(struct ib_device *ibdev, int entries, int vector,
 			     struct ib_ucontext *ib_ctx,
@@ -1625,6 +1629,10 @@ struct ib_cq *qedr_create_cq(struct ib_device *ibdev, int entries, int vector,
 #ifdef DEFINE_CREATE_CQ_ATTR  /* QEDR_UPSTREAM */
 	int vector = attr->comp_vector;
 	int entries = attr->cqe;
+#ifdef _HAS_CREATE_CQ_UVERBS_ATTRS
+	struct ib_ucontext *ib_ctx = attrs ? attrs->context : NULL;
+	struct ib_udata *udata = attrs ? &attrs->driver_udata : NULL;
+#endif
 #endif
 	struct qedr_cq *cq;
 	int chain_entries;
@@ -4387,7 +4395,11 @@ done:
 
 #ifdef DEFINE_USER_NO_MR_ID /* QEDR_UPSTREAM */
 struct ib_mr *qedr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
-			       u64 usr_addr, int acc, struct ib_udata *udata)
+			       u64 usr_addr, int acc,
+#ifdef _HAS_REG_USER_MR_DMAH
+			       struct ib_dmah *dmah,
+#endif
+			       struct ib_udata *udata)
 #else
 struct ib_mr *qedr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 			       u64 usr_addr, int acc, struct ib_udata *udata,
@@ -4403,6 +4415,10 @@ struct ib_mr *qedr_reg_user_mr(struct ib_pd *ibpd, u64 start, u64 len,
 	struct qedr_pd *pd;
 	int rc = -ENOMEM;
 	u64 page_mask;
+
+#ifdef _HAS_REG_USER_MR_DMAH
+	(void)dmah;
+#endif
 
 	rc = qedr_recov_check_state(dev, __func__);
 	if (unlikely(rc))

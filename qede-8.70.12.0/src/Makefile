@@ -185,6 +185,9 @@ ifeq ($(shell grep "prandom_bytes" $(LINUXSRC)/include/linux/prandom.h > /dev/nu
 	override EXTRA_CFLAGS += -D_DEFINE_PRANDOM_BYTES_
 endif
 endif
+ifeq ($(shell grep -w "strlcpy" $(LINUXSRC)/include/linux/string.h > /dev/null 2>&1 && echo strlcpy),)
+	override EXTRA_CFLAGS += -D_NEED_STRLCPY
+endif
 
 ifneq ($(shell grep -A3 "pci_driver_rh" $(LINUXSRC)/include/linux/pci.h | grep "sriov_configure" > /dev/null 2>&1 && echo pci_driver_rh),)
 	override EXTRA_CFLAGS += -DHAS_SRIOV_PCI_DRIVER_RH
@@ -207,6 +210,9 @@ endif
 ifeq ($(shell grep "netif_get_num_default_rss_queues" $(LINUXSRC)/include/linux/netdevice.h > /dev/null 2>&1 && echo netif_get_num_default_rss_queues),)
 	override EXTRA_CFLAGS += -D_DEFINE_NETIF_GET_NUM_DEFAULT_RSS_QUEUES
 endif
+ifneq ($(shell grep "netif_napi_add_weight" $(LINUXSRC)/include/linux/netdevice.h > /dev/null 2>&1 && echo netif_napi_add_weight),)
+	override EXTRA_CFLAGS += -D_HAS_NETIF_NAPI_ADD_WEIGHT
+endif
 
 ifeq ($(shell grep "netdev_tx_completed_queue" $(LINUXSRC)/include/linux/netdevice.h > /dev/null 2>&1 && echo netdev_tx_completed_queue),)
 	override EXTRA_CFLAGS += -D_DEFINE_NETDEV_TX_COMPLETED_QUEUE
@@ -222,6 +228,15 @@ endif
 ifneq ($(shell grep "ETH_SS_RSS_HASH_FUNCS" $(LINUXSRC)/include/linux/ethtool.h > /dev/null 2>&1 && echo RSS_HASH),)
 # At least in RH6.8, It's backported to here
 	override EXTRA_CFLAGS += -D_HAS_RSS_HASH_FUNCS
+endif
+ifneq ($(shell grep -A2 "\*get_rxfh" $(LINUXSRC)/include/linux/ethtool.h | grep "struct ethtool_rxfh_param" > /dev/null 2>&1 && echo ethtool_rxfh_param),)
+	override EXTRA_CFLAGS += -D_HAS_ETHTOOL_RXFH_PARAM
+endif
+ifneq ($(shell grep -A1 "\*get_ts_info" $(LINUXSRC)/include/linux/ethtool.h | grep "struct kernel_ethtool_ts_info" > /dev/null 2>&1 && echo kernel_ethtool_ts_info),)
+	override EXTRA_CFLAGS += -D_HAS_KERNEL_ETHTOOL_TS_INFO
+endif
+ifneq ($(shell grep -A1 "\*get_eee" $(LINUXSRC)/include/linux/ethtool.h | grep "struct ethtool_keee" > /dev/null 2>&1 && echo ethtool_keee),)
+	override EXTRA_CFLAGS += -D_HAS_ETHTOOL_KEEE
 endif
 
 ifneq ($(shell grep "struct ethtool_tcpip6_spec" $(LINUXSRC)/include/uapi/linux/ethtool.h > /dev/null 2>&1 && echo ethtool_tcpip6_spec),)
@@ -541,6 +556,7 @@ endif
 ifeq ($(shell grep "CYCLECOUNTER_MASK" $(LINUXSRC)/include/linux/timecounter.h > /dev/null 2>&1 && echo CYCLECOUNTER_MASK),)
 	override EXTRA_CFLAGS += -D_DEFINE_CYCLECOUNTER_MASK
 endif
+override EXTRA_CFLAGS += -D_HAS_CYCLECOUNTER_READ_NONCONST
 ifneq ($(shell grep "timecounter_adjtime" $(LINUXSRC)/include/linux/timecounter.h > /dev/null 2>&1 && echo timecounter_adjtime),)
 	override EXTRA_CFLAGS += -D_HAS_TIMECOUNTER_ADJTIME
 endif
@@ -553,6 +569,9 @@ ifneq ($(shell grep "timespec64" $(LINUXSRC)/include/linux/time.h > /dev/null 2>
 endif
 ifneq ($(shell grep "gettime64" $(LINUXSRC)/include/linux/ptp_clock_kernel.h > /dev/null 2>&1 && echo timecounter_adjtime),)
 	override EXTRA_CFLAGS += -D_HAS_PTPTIME64
+endif
+ifneq ($(shell grep "adjfine" $(LINUXSRC)/include/linux/ptp_clock_kernel.h > /dev/null 2>&1 && echo ptp_adjfine),)
+	override EXTRA_CFLAGS += -D_HAS_PTP_CLOCK_INFO_ADJFINE
 endif
 ifneq ($(shell grep "eth_get_headlen" $(LINUXSRC)/include/linux/etherdevice.h > /dev/null 2>&1 && echo eth_get_headlen),)
 	override EXTRA_CFLAGS += -D_HAS_GET_HEAD_LEN
@@ -688,7 +707,7 @@ ifneq ($(shell grep "data_hard_start" $(LINUXSRC)/include/linux/filter.h > /dev/
 	override EXTRA_CFLAGS += -D_HAS_NDO_XDP_HARD_START
 endif
 
-ifneq ($(shell grep "bpf_warn_invalid_xdp_action" $(LINUXSRC)/include/linux/filter.h | grep bpf_prog > /dev/null 2>&1 && echo bpf_prog),)
+ifneq ($(shell grep -A2 "bpf_warn_invalid_xdp_action" $(LINUXSRC)/include/linux/filter.h | grep bpf_prog > /dev/null 2>&1 && echo bpf_prog),)
         override EXTRA_CFLAGS += -D_HAS_BPF_PROG
 endif
 
@@ -876,10 +895,12 @@ ifeq ($(shell grep "kref_get_unless_zero" $(LINUXSRC)/include/linux/kref.h > /de
 	override EXTRA_CFLAGS += -D_DEFINE_KREF_GET_UNLESS_ZERO
 endif
 
+ifneq ($(shell if [ $(shell echo $(KVER) | cut -d. -f1) -lt 7 ]; then echo devlink_compat; fi),)
 ifneq ($(shell grep "devlink_health_reporter_ops" $(LINUXSRC)/include/net/devlink.h > /dev/null 2>&1 && echo devlink_health_reporter_ops),)
         override EXTRA_CFLAGS += -D_HAS_DEVLINK
 ifneq ($(shell grep -A2 "devlink_fmsg_binary_pair_put" $(LINUXSRC)/include/net/devlink.h | grep u32 > /dev/null 2>&1 && echo devlink_fmsg_binary_pair_put),)
         override EXTRA_CFLAGS += -D_HAS_DEVLINK_DUMP
+endif
 endif
 endif
 
@@ -934,13 +955,13 @@ endif
 
 KBUILD_EXTRA_SYMBOLS := $(QED_DIR)/Module.symvers
 
-all default: $(obj-m)
+ccflags-y += $(EXTRA_CFLAGS)
 
-$(obj-m): $(SOURCES)
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` modules
+all default:
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) modules
 
-modules_install: $(obj-m)
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install 2>&1 | grep -v depmod
+modules_install: all
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install 2>&1 | grep -v depmod
 	@if [ "$(sles_distro)" = "" -a "$(ubuntu_distro)" = "" ]; then \
 		echo "override qede * $(DRV_DIR)" > qede.conf ;\
 		install -m 644 -D qede.conf $(PREFIX)/etc/depmod.d/qede.conf ;\
@@ -950,8 +971,10 @@ modules_install: $(obj-m)
 		else echo " *** Run '/sbin/depmod -a' to update the module database." ;\
 	fi
 
-initramfs_install: $(obj-m)
-	@if [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qede.ko`" ] ; then\
+initramfs_install: all
+	@if [ "$(PREFIX)" != "" ]; then \
+		echo " *** Skipping initramfs update for staged install." ;\
+	elif [ -f /boot/initramfs-$(KVER).img ] && [ "`lsinitrd /boot/initramfs-$(KVER).img | grep qede.ko`" ] ; then\
 		echo "back up initrd to /boot/initramfs-$(KVER).img.bak" ;\
 		cp /boot/initramfs-$(KVER).img /boot/initramfs-$(KVER).img.bak ;\
 		echo "add driver qede to initrd" ;\
@@ -980,7 +1003,7 @@ initramfs_install: $(obj-m)
 #	install -m 644 qede.4.gz $(MAN_DIR)
 
 clean:
-	$(MAKE) -C $(KERNEL_DIR) M=`pwd` clean
+	$(MAKE) -C $(KERNEL_DIR) M=$(CURDIR) clean
 
 clobber: clean
 

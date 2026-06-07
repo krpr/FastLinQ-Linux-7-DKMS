@@ -239,7 +239,8 @@ static void qedr_collect_stats(struct qedr_dev *dev, struct qedr_stats *stats)
 
 #ifdef _HAS_SYSFS_BIN_ATTR_INIT
 static ssize_t sysfs_show(struct file *filp, struct kobject *kobp,
-			  struct bin_attribute *bin_attr, char *buffer,
+			  QED_CONST_BIN_ATTR struct bin_attribute *bin_attr,
+			  char *buffer,
 			  loff_t pos, size_t count)
 {
 	struct qedr_dev *dev = (struct qedr_dev *)bin_attr->private;
@@ -347,7 +348,8 @@ out:
 
 #ifdef _HAS_SYSFS_BIN_ATTR_INIT
 static ssize_t sysfs_store(struct file *filp, struct kobject *kobj,
-		struct bin_attribute *bin_attr, char *buffer,
+		QED_CONST_BIN_ATTR struct bin_attribute *bin_attr,
+		char *buffer,
 		loff_t pos, size_t count)
 {
 	struct qedr_dev *dev = (struct qedr_dev *)bin_attr->private;

@@ -33,7 +33,31 @@
 #ifndef _QEDR_COMPAT_H_
 #define _QEDR_COMPAT_H_
 
+#include <linux/string.h>
+
 #define QEDR_BACKPORT(__sym) backport_ ##__sym
+
+#ifdef _NEED_STRLCPY
+static inline size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t src_len = strlen(src);
+
+	if (size) {
+		size_t len = src_len >= size ? size - 1 : src_len;
+
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+
+	return src_len;
+}
+#endif
+
+#ifdef _HAS_CONST_BIN_ATTR
+#define QED_CONST_BIN_ATTR const
+#else
+#define QED_CONST_BIN_ATTR
+#endif
 
 #ifndef ROCE_V2_UDP_DPORT
 #define ROCE_V2_UDP_DPORT	(4791)
@@ -125,8 +149,12 @@ static inline void rdma_destroy_ah_attr(struct rdma_ah_attr *ah_attr)
 #ifdef NOT_DEFINED_IOMMU_PRESENT
 static inline bool iommu_present(struct bus_type *bus)
 {
-	return iommu_found();
+	return false;
 }
+#endif
+
+#ifndef in_irq
+#define in_irq() ((long)in_hardirq())
 #endif
 
 #ifndef array_size

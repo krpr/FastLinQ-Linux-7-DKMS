@@ -51,7 +51,11 @@ void qede_ptp_tx_ts(struct qede_dev *, struct sk_buff *);
 int qede_ptp_hw_ts(struct qede_dev *, struct ifreq *);
 void qede_ptp_disable(struct qede_dev *);
 int qede_ptp_enable(struct qede_dev *);
+#ifdef _HAS_KERNEL_ETHTOOL_TS_INFO
+int qede_ptp_get_ts_info(struct qede_dev *, struct kernel_ethtool_ts_info *);
+#else
 int qede_ptp_get_ts_info(struct qede_dev *, struct ethtool_ts_info *);
+#endif
 
 static inline void qede_ptp_record_rx_ts(struct qede_dev *edev,
 					 union eth_rx_cqe *cqe,
@@ -97,9 +101,17 @@ static inline void qede_ptp_disable(struct qede_dev *dev)
 	return;
 }
 
+#ifdef _HAS_KERNEL_ETHTOOL_TS_INFO
+struct kernel_ethtool_ts_info;
+#else
 struct ethtool_ts_info;
+#endif
 static inline int qede_ptp_get_ts_info(struct qede_dev *edev,
+#ifdef _HAS_KERNEL_ETHTOOL_TS_INFO
+				       struct kernel_ethtool_ts_info *info)
+#else
 				       struct ethtool_ts_info *info)
+#endif
 {
 	return 0;
 }

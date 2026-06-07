@@ -1,9 +1,13 @@
 #!/bin/bash
 
 udev_src_dir=`dirname $0`
-udev_rules_dir='/etc/udev/rules.d'
+DESTDIR=${DESTDIR%/}
+if [[ "$DESTDIR" == "/" ]]; then
+	DESTDIR=
+fi
+udev_rules_dir="${DESTDIR}/etc/udev/rules.d"
 udev_rules_file='99-qed.rules'
-udev_script_dir='/lib/udev'
+udev_script_dir="${DESTDIR}/lib/udev"
 udev_dbg_script='qed_udev_dbg.sh'
 
 usage_error_rc=1
@@ -34,11 +38,12 @@ function get_udev_reload_op() {
 
 function udev_install() {
 	local udev_reload_op=$(get_udev_reload_op)
-	if [[ "$udev_reload_op" == "none" ]]; then
+	if [[ -z "$DESTDIR" && "$udev_reload_op" == "none" ]]; then
 		echo "failed to find a management tool for udev"
 		return $no_udev_tool_rc
 	fi
 
+	mkdir -p ${udev_rules_dir}
 	mkdir -p ${udev_script_dir}
 	diff ${udev_src_dir}/${udev_rules_file} ${udev_rules_dir}/${udev_rules_file} &> /dev/null
 	local ret=$?
@@ -49,7 +54,9 @@ function udev_install() {
 		echo "Installing udev files ${udev_rules_file} and ${udev_dbg_script}"
 		install -m 755 ./${udev_src_dir}/${udev_rules_file} ${udev_rules_dir}/
 		install -m 755 ./${udev_src_dir}/${udev_dbg_script} ${udev_script_dir}/
-		$udev_reload_op
+		if [[ -z "$DESTDIR" ]]; then
+			$udev_reload_op
+		fi
 	else
 		echo "udev rules already installed"
 	fi
@@ -59,7 +66,7 @@ function udev_install() {
 
 function udev_uninstall() {
 	local udev_reload_op=$(get_udev_reload_op)
-	if [[ "$udev_reload_op" == "none" ]]; then
+	if [[ -z "$DESTDIR" && "$udev_reload_op" == "none" ]]; then
 		echo "failed to find a udev management tool"
 		return $no_udev_tool_rc
 	fi
@@ -67,7 +74,9 @@ function udev_uninstall() {
 	echo "Removing udev files ${udev_rules_file} and ${udev_dbg_script}"
 	rm -f ${udev_rules_dir}/${udev_rules_file} &> /dev/null
 	rm -f ${udev_script_dir}/${udev_dbg_script} &> /dev/null
-	$udev_reload_op
+	if [[ -z "$DESTDIR" ]]; then
+		$udev_reload_op
+	fi
 
 	return 0
 }

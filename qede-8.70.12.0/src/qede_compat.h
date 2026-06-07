@@ -39,8 +39,25 @@
 #include <linux/etherdevice.h>
 #include <linux/tcp.h>
 #include <linux/ethtool.h>
+#include <linux/string.h>
 #ifdef CONFIG_QEDE_VXLAN /* QEDE_UPSTREAM */
 #include <net/vxlan.h>
+#endif
+
+#ifdef _NEED_STRLCPY
+static inline size_t strlcpy(char *dst, const char *src, size_t size)
+{
+	size_t src_len = strlen(src);
+
+	if (size) {
+		size_t len = src_len >= size ? size - 1 : src_len;
+
+		memcpy(dst, src, len);
+		dst[len] = '\0';
+	}
+
+	return src_len;
+}
 #endif
 
 #ifdef _HAS_MMIOWB_SPIN_LOCK /* QEDE_UPSTREAM */
@@ -100,6 +117,14 @@ static inline int qede_block_cb_register(struct tc_block_offload *f,
 #ifndef NETIF_F_CSUM_MASK
 #define NETIF_F_CSUM_MASK	(NETIF_F_IP_CSUM | NETIF_F_IPV6_CSUM | \
 				 NETIF_F_HW_CSUM)
+#endif
+
+#ifdef _HAS_NETIF_NAPI_ADD_WEIGHT
+#define QEDE_NETIF_NAPI_ADD(dev, napi, poll, weight) \
+	netif_napi_add_weight(dev, napi, poll, weight)
+#else
+#define QEDE_NETIF_NAPI_ADD(dev, napi, poll, weight) \
+	netif_napi_add(dev, napi, poll, weight)
 #endif
 
 #if !defined(_HAS_PAGE_PFMEMALLOC_API) && defined(_HAS_PAGE_PFMEMALLOC)

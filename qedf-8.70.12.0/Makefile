@@ -59,6 +59,12 @@ DEFINES += $(call set-def,BLK_DEV_SPECIAL,linux/blkdev.h,*special)
 DEFINES += $(call set-def,SKB_FRAG,linux/skbuff.h,skb_frag_struct)
 DEFINES += $(call set-def,CLEAR_NONFATAL_STATUS,linux/aer.h,pci_aer_clear_nonfatal_status)
 DEFINES += $(call set-def,FDMI_VERSION,include/scsi/fc/fc_ms.h,FDMI_V2)
+ifeq ($(shell grep -w "strlcpy" $(INC_DIR)/linux/string.h > /dev/null 2>&1 && echo strlcpy),)
+DEFINES += _NEED_STRLCPY
+endif
+ifneq ($(shell grep "const struct bin_attribute" $(INC_DIR)/linux/sysfs.h > /dev/null 2>&1 && echo const_bin_attr),)
+DEFINES += _HAS_CONST_BIN_ATTR
+endif
 
 ifeq ($(wildcard $(INC_DIR)/scsi/fc_encode.h),)
 DEFINES += INCLUDE_FC_ENCODE
@@ -163,6 +169,8 @@ ifeq ($(ERROR_INJECT), 1)
 override EXTRA_CFLAGS += -DERROR_INJECT
 endif
 
+ccflags-y += $(EXTRA_CFLAGS)
+
 NPROCS:=$(shell grep -c ^processor /proc/cpuinfo)
 
 .PHONY: build_pre sparse sparse_endian smatch modcopy modules_install install
@@ -171,7 +179,7 @@ KBUILD_EXTRA_SYMBOLS := $(QED_DIR)/Module.symvers
 QED_FILES := Module.symvers qed_if.h qed_fcoe_if.h qed_ll2_if.h qed_chain.h qed_hsi.h tcp_common.h eth_common.h iscsi_common.h iwarp_common.h rdma_common.h roce_common.h qed_iscsi_if.h qed_compat.h qed_eth_if.h qed_iov_if.h qed_reg_addr.h qed_mcp.h qed_int.h qed_dev_api.h qed_hw.h qed_dcbx.h qed.h qed_debug.h storage_overtcp_common.h qed_dbg_hsi.h qed_mfw_hsi.h
 
 build: build_pre
-	make -C $(KVER_DIR)/build -j$(NPROCS) M=`pwd` modules
+	make -C $(KVER_DIR)/build -j$(NPROCS) M=$(CURDIR) modules
 
 $(QED_FILES): $(addprefix ../qed-8.70.12.0/src/,$(QED_FILES))
 	cp -f ../qed-8.70.12.0/src/$@ .
@@ -198,10 +206,10 @@ clean:
 	rm -f modules.order
 	rm -f ../storcmn/\.*.cmd ../storcmn/*.o
 	rm -f $(QED_FILES)
-	make -C $(KVER_DIR)/build M=`pwd` clean
+	make -C $(KVER_DIR)/build M=$(CURDIR) clean
 
 modcopy: build
-	make -C $(KVER_DIR)/build M=`pwd` INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install
+	make -C $(KVER_DIR)/build M=$(CURDIR) INSTALL_MOD_PATH=$(PREFIX) INSTALL_MOD_DIR=$(DRV_DIR) modules_install
 	@if [ "$(rhel_distro)" != "" ]; then \
 		echo "override qedf * $(DRV_DIR)" > qedf.conf ;\
 		install -m 644 -D qedf.conf $(PREFIX)/etc/depmod.d/qedf.conf ;\
@@ -212,7 +220,9 @@ modcopy: build
 	fi
 
 modules_install: modcopy
-	@if [ -f /boot/initramfs-$(KVER).img ]; then\
+	@if [ "$(PREFIX)" != "" ]; then \
+		echo " *** Skipping initramfs update for staged install." ;\
+	elif [ -f /boot/initramfs-$(KVER).img ]; then\
 		echo "back up initrd to /boot/initramfs-$(KVER).img.bak" ;\
 		cp /boot/initramfs-$(KVER).img /boot/initramfs-$(KVER).img.bak ;\
 	elif [ -f /boot/initrd-$(KVER) ]; then\
@@ -222,8 +232,12 @@ modules_install: modcopy
 		echo "back up initrd to /boot/initrd.img-$(KVER).bak";\
 		cp /boot/initrd.img-$(KVER) /boot/initrd.img-$(KVER).bak;\
 	fi
-	@echo "add driver qedf to initrd"
-	@if which dracut 1>/dev/null 2>&1 && [ -f "/boot/initramfs-$(KVER).img" ]; then\
+	@if [ "$(PREFIX)" = "" ]; then \
+		echo "add driver qedf to initrd" ;\
+	fi
+	@if [ "$(PREFIX)" != "" ]; then \
+		: ;\
+	elif which dracut 1>/dev/null 2>&1 && [ -f "/boot/initramfs-$(KVER).img" ]; then\
 		dracut -f --add-drivers qedf;\
 	elif [ -f /boot/initrd.img-$(KVER) ] && [ -f /usr/sbin/update-initramfs ]; then\
 		echo "updating initrd" ;\

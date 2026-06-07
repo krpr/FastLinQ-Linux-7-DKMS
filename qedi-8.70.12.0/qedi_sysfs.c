@@ -19,7 +19,8 @@ static inline struct qedi_ctx *qedi_dev_to_hba(struct device *dev)
 
 static ssize_t
 qedi_sysfs_read_grcdump(struct file *filep, struct kobject *kobj,
-			struct bin_attribute *ba, char *buf, loff_t off,
+			QED_CONST_BIN_ATTR struct bin_attribute *ba,
+			char *buf, loff_t off,
 			size_t count)
 {
 	struct qedi_ctx *qedi = NULL;
@@ -41,7 +42,8 @@ qedi_sysfs_read_grcdump(struct file *filep, struct kobject *kobj,
 
 static ssize_t
 qedi_sysfs_write_grcdump(struct file *filep, struct kobject *kobj,
-			 struct bin_attribute *ba, char *buf, loff_t off,
+			 QED_CONST_BIN_ATTR struct bin_attribute *ba,
+			 char *buf, loff_t off,
 			 size_t count)
 {
 	struct qedi_ctx *qedi = NULL;
@@ -152,4 +154,3 @@ struct device_attribute *qedi_shost_attrs[] = {
 	&dev_attr_speed,
 	NULL
 };
-
