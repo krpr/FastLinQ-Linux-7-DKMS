@@ -59,6 +59,7 @@ validate_deb() {
 		"./lib/firmware/qed/qed_init_values_zipped-8.70.4.0.bin" \
 		"./etc/udev/rules.d/99-qed.rules" \
 		"./lib/udev/qed_udev_dbg.sh" \
+		"./usr/share/doc/${deb_package}/README.md" \
 		"./usr/share/doc/${deb_package}/INSTALL.md" \
 		"./usr/share/doc/${deb_package}/NOTICE.md" \
 		"./usr/share/doc/${deb_package}/PACKAGING.md"; do
@@ -99,6 +100,7 @@ for firmware in qed-8.70.12.0/src/qed_init_values-*.bin \
 done
 
 install -m 0644 COPYING "$doc_root/copyright"
+install -m 0644 README.md "$doc_root/README.md"
 install -m 0644 INSTALL.md "$doc_root/INSTALL.md"
 install -m 0644 DKMS.md "$doc_root/DKMS.md"
 install -m 0644 NOTICE.md "$doc_root/NOTICE.md"
