@@ -22,6 +22,9 @@ Initial maintenance baseline for Linux 7.0 on Debian/Ubuntu.
 - Added `README.md` for GitHub publishing under the `FastLinQ Linux 7 DKMS`
   project name, including the original `8.70.12.0` baseline and maintenance
   change summary.
+- Added `README.zh-CN.md` and `CHANGELOG.zh-CN.md`; the Chinese changelog
+  tracks this maintenance fork only and does not translate the original
+  QLogic/Cavium release history.
 - Added top-level `WITH_STORAGE` switch. The default maintained module set is
   now `qed`, `qede` and `qedr`; storage offload modules can be attempted with
   `WITH_STORAGE=1`.
@@ -78,10 +81,8 @@ make KVER=7.0.0-22-generic WITH_STORAGE=0 DISABLE_WERROR=1 subsystem
 ```
 
 In a Hyper-V + VF deployment, the Ubuntu inbox `qede` driver was observed to
-show the adapter as degraded, with SR-IOV not running. In the localized
-Hyper-V UI this appears as "已降级 (SR-IOV 未运行)". This maintained driver was
-observed to show the adapter as OK, with SR-IOV active, shown as
-"确定 (SR-IOV 活动)" in that UI.
+show the adapter as degraded, with SR-IOV not running. This maintained driver
+was observed to show the adapter as OK, with SR-IOV active.
 
 The test environment did not have the `dkms` command installed, so
 `dkms add/build/install` was documented but not executed there.

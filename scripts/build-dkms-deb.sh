@@ -60,9 +60,11 @@ validate_deb() {
 		"./etc/udev/rules.d/99-qed.rules" \
 		"./lib/udev/qed_udev_dbg.sh" \
 		"./usr/share/doc/${deb_package}/README.md" \
+		"./usr/share/doc/${deb_package}/README.zh-CN.md" \
 		"./usr/share/doc/${deb_package}/INSTALL.md" \
 		"./usr/share/doc/${deb_package}/NOTICE.md" \
-		"./usr/share/doc/${deb_package}/PACKAGING.md"; do
+		"./usr/share/doc/${deb_package}/PACKAGING.md" \
+		"./usr/share/doc/${deb_package}/CHANGELOG.zh-CN.md"; do
 		if ! grep -Fx "$member" "$members_file" >/dev/null; then
 			echo "package validation failed: missing $member" >&2
 			exit 1
@@ -101,11 +103,13 @@ done
 
 install -m 0644 COPYING "$doc_root/copyright"
 install -m 0644 README.md "$doc_root/README.md"
+install -m 0644 README.zh-CN.md "$doc_root/README.zh-CN.md"
 install -m 0644 INSTALL.md "$doc_root/INSTALL.md"
 install -m 0644 DKMS.md "$doc_root/DKMS.md"
 install -m 0644 NOTICE.md "$doc_root/NOTICE.md"
 install -m 0644 PACKAGING.md "$doc_root/PACKAGING.md"
 install -m 0644 CHANGELOG.md "$doc_root/changelog"
+install -m 0644 CHANGELOG.zh-CN.md "$doc_root/CHANGELOG.zh-CN.md"
 
 cat > "$control_dir/control" <<EOF
 Package: $deb_package
