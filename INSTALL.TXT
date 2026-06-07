@@ -6,6 +6,10 @@
         Copyright (c) 2015-2017 QLogic Corporation
         Copyright (c) 2016-2017 Cavium Inc.
 
+For the maintained Debian/Ubuntu Linux 7.0 workflow, including DKMS and
+kernel-update handling, read INSTALL.md first. This legacy file is kept for
+package compatibility and short-form reference.
+
 
 Table of Contents
 =================
