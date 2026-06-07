@@ -20,7 +20,8 @@ Initial maintenance baseline for Linux 7.0 on Debian/Ubuntu.
 - Added `NOTICE.md` to preserve original QLogic/Cavium notices and document
   the 2026 maintenance attribution.
 - Added `README.md` for GitHub publishing under the `FastLinQ Linux 7 DKMS`
-  project name.
+  project name, including the original `8.70.12.0` baseline and maintenance
+  change summary.
 - Added top-level `WITH_STORAGE` switch. The default maintained module set is
   now `qed`, `qede` and `qedr`; storage offload modules can be attempted with
   `WITH_STORAGE=1`.

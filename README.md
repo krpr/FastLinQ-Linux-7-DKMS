@@ -1,8 +1,8 @@
 # FastLinQ Linux 7 DKMS
 
-Unofficial Debian/Ubuntu maintenance fork for the QLogic/Cavium FastLinQ
-8.70.12.0 Linux driver package, focused on Linux 7.0 kernels and DKMS-based
-deployment.
+Unofficial Debian/Ubuntu maintenance fork based on the original QLogic/Cavium
+FastLinQ Linux driver package version `8.70.12.0`, focused on Linux 7.0
+kernels and DKMS-based deployment.
 
 Suggested GitHub repository name:
 
@@ -28,6 +28,38 @@ of the maintained default build:
 Linux 7.0 SCSI, FCoE and iSCSI API changes require a separate storage-driver
 port. Do not enable them in production unless they have been explicitly ported
 and tested.
+
+## Maintenance Changes From 8.70.12.0
+
+This fork keeps the original `8.70.12.0` driver lineage and adds the minimum
+maintenance needed for current Debian/Ubuntu deployment:
+
+- Linux 7.0 build fixes for `qed`, `qede` and `qedr`.
+- DKMS metadata for automatic rebuilds after kernel updates.
+- Local DKMS `.deb` packaging through `make deb`.
+- Default build narrowed to the maintained network/RDMA modules: `qed`,
+  `qede` and `qedr`.
+- Storage offload modules `qedf` and `qedi` excluded by default through
+  `WITH_STORAGE=0`.
+- Kernel build cleanup using normal Kbuild module rules and propagated
+  compatibility flags through `ccflags-y`.
+- Debian/Ubuntu-oriented staged install behavior with `PREFIX=/path`.
+- udev installation updated to use `bash` and respect `DESTDIR`.
+- `DISABLE_WERROR=1` by default so modern compiler warnings do not block
+  normal installation of this older driver tree.
+- Compatibility shims and API updates for Linux 7.0 changes, including
+  `strlcpy`, PCIe AER helpers, `local_clock`, sysfs binary attributes,
+  `netif_napi_add_weight`, PTP `adjfine`, `cyclecounter.read`,
+  `ethtool_rxfh_param`, `kernel_ethtool_ts_info` and `ethtool_keee`.
+- RDMA compatibility fixes for newer `create_cq` and `reg_user_mr`
+  signatures, removed `in_irq()` usage and changed `ip_route_output()`
+  signatures.
+- Legacy `qed`/`qede` devlink integration disabled on Linux 7.0 where the old
+  implementation no longer matches the upstream devlink API.
+- Documentation added for installation, DKMS operation, `.deb` packaging,
+  maintenance notices and changelog tracking.
+
+See `CHANGELOG.md` for the full maintenance log.
 
 ## Quick Install
 
