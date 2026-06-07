@@ -56,6 +56,11 @@ maintenance needed for current Debian/Ubuntu deployment:
   signatures.
 - Legacy `qed`/`qede` devlink integration disabled on Linux 7.0 where the old
   implementation no longer matches the upstream devlink API.
+- In Hyper-V + VF deployments, the Ubuntu inbox `qede` driver has been observed
+  to report the VF state as degraded, with SR-IOV not running. In the localized
+  Hyper-V UI this appears as "已降级 (SR-IOV 未运行)". This maintained driver has
+  been observed to report the VF state as OK, with SR-IOV active, shown as
+  "确定 (SR-IOV 活动)" in that UI.
 - Documentation added for installation, DKMS operation, `.deb` packaging,
   maintenance notices and changelog tracking.
 
@@ -160,6 +165,12 @@ The DKMS build command body was also validated:
 ```sh
 make KVER=7.0.0-22-generic WITH_STORAGE=0 DISABLE_WERROR=1 subsystem
 ```
+
+In a Hyper-V + VF environment, the Ubuntu inbox `qede` driver was observed to
+show the adapter as degraded, with SR-IOV not running. In the localized
+Hyper-V UI this appears as "已降级 (SR-IOV 未运行)". This maintained driver was
+observed to show the adapter as OK, with SR-IOV active, shown as
+"确定 (SR-IOV 活动)" in that UI.
 
 ## Documentation
 

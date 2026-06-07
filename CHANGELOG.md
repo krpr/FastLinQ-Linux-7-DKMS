@@ -77,6 +77,12 @@ Also validated the DKMS build command body:
 make KVER=7.0.0-22-generic WITH_STORAGE=0 DISABLE_WERROR=1 subsystem
 ```
 
+In a Hyper-V + VF deployment, the Ubuntu inbox `qede` driver was observed to
+show the adapter as degraded, with SR-IOV not running. In the localized
+Hyper-V UI this appears as "已降级 (SR-IOV 未运行)". This maintained driver was
+observed to show the adapter as OK, with SR-IOV active, shown as
+"确定 (SR-IOV 活动)" in that UI.
+
 The test environment did not have the `dkms` command installed, so
 `dkms add/build/install` was documented but not executed there.
 
