@@ -1,9 +1,11 @@
-QED_DIR := ${PWD}/qed-8.70.12.0/src/
-QEDE_DIR := ${PWD}/qede-8.70.12.0/src/
-QEDR_DIR := ${PWD}/qedr-8.70.12.0/src/
-QEDF_DIR := ${PWD}/qedf-8.70.12.0
-QEDI_DIR := ${PWD}/qedi-8.70.12.0
-LIBQEDR_DIR := ${PWD}//
+PACKAGE_NAME := qlgc-fastlinq
+PACKAGE_VERSION := 8.70.12.0
+QED_DIR := $(CURDIR)/qed-8.70.12.0/src/
+QEDE_DIR := $(CURDIR)/qede-8.70.12.0/src/
+QEDR_DIR := $(CURDIR)/qedr-8.70.12.0/src/
+QEDF_DIR := $(CURDIR)/qedf-8.70.12.0
+QEDI_DIR := $(CURDIR)/qedi-8.70.12.0
+LIBQEDR_DIR := $(CURDIR)//
 WITH_STORAGE ?= 0
 DISABLE_WERROR ?= 1
 SUBDIRS := $(QED_DIR) $(QEDE_DIR) $(QEDR_DIR)

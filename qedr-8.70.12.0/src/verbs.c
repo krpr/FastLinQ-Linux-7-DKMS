@@ -1630,7 +1630,9 @@ struct ib_cq *qedr_create_cq(struct ib_device *ibdev, int entries, int vector,
 	int vector = attr->comp_vector;
 	int entries = attr->cqe;
 #ifdef _HAS_CREATE_CQ_UVERBS_ATTRS
+#ifdef _HAS_IB_CONTEXT
 	struct ib_ucontext *ib_ctx = attrs ? attrs->context : NULL;
+#endif
 	struct ib_udata *udata = attrs ? &attrs->driver_udata : NULL;
 #endif
 #endif

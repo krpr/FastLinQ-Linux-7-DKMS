@@ -13,6 +13,7 @@ Table of Contents
   Introduction
   Installation of Kernel Drivers
   Loading and Removing Kernel Drivers
+  DKMS and Kernel Updates
   Installation of Userspace Driver
 
 
@@ -56,6 +57,10 @@ Installation of Kernel Drivers
 
    `make install'
 
+By default this Debian/Ubuntu-oriented tree builds and installs QED, QEDE and
+QEDR. QEDF and QEDI storage offload drivers are excluded from the default build;
+set `WITH_STORAGE=1' only if those storage modules are being ported and tested.
+
 
 Loading and Removing Kernel Drivers
 ===================================
@@ -70,6 +75,13 @@ Loading and Removing Kernel Drivers
 - Removing a kernel driver:
 
   `rmmod <qedi/qedf/qedr/qede/qed>'
+
+
+DKMS and Kernel Updates
+=======================
+
+Use DKMS to rebuild QED, QEDE and QEDR automatically after kernel updates.
+See `DKMS.md' for the Debian/Ubuntu DKMS registration and maintenance commands.
 
 
 Installation of Userspace Driver
