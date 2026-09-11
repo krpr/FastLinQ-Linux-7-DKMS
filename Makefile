@@ -1,7 +1,7 @@
 PACKAGE_NAME := qlgc-fastlinq
 PACKAGE_VERSION := 8.70.12.0
 DEB_PACKAGE ?= $(PACKAGE_NAME)-dkms
-DEB_VERSION ?= $(PACKAGE_VERSION)-linux7maint1
+DEB_VERSION ?= $(PACKAGE_VERSION)-linux7maint2
 DEB_ARCH ?= all
 DEB_MAINTAINER ?= FastLinQ Maintainers <root@localhost>
 DEB_FILE := $(CURDIR)/dist/$(DEB_PACKAGE)_$(DEB_VERSION)_$(DEB_ARCH).deb

@@ -4,11 +4,11 @@ Unofficial Debian/Ubuntu maintenance fork based on the original QLogic/Cavium
 FastLinQ Linux driver package version `8.70.12.0`, focused on Linux 7.0
 kernels and DKMS-based deployment.
 
-Suggested GitHub repository name:
+Project: [krpr/FastLinQ-Linux-7-DKMS](https://github.com/krpr/FastLinQ-Linux-7-DKMS).
 
-```text
-fastlinq-linux7-dkms
-```
+Current maintenance version: **`8.70.12.0-linux7maint2`** (2026-09-12).
+This is the Debian package version; the upstream driver and DKMS version
+remain `8.70.12.0`.
 
 ## Scope
 
@@ -35,6 +35,15 @@ This fork keeps the original `8.70.12.0` driver lineage and adds the minimum
 maintenance needed for current Debian/Ubuntu deployment:
 
 - Linux 7.0 build fixes for `qed`, `qede` and `qedr`.
+- Fixed `qedr` DKMS compilation on Ubuntu `7.0.0-31` by detecting
+  `ib_umem_num_dma_blocks` directly. The removed
+  `rdma_umem_for_each_dma_block` iterator no longer incorrectly selects the
+  legacy counting API. Queue counts still use firmware 4 KiB pages, MR counts
+  still use `PAGE_SIZE`, and the old-kernel fallback remains available.
+- Fixed a `qed` attention descriptor array overrun by correcting the ninth
+  AEU row's reserved field from 9 to 25 bits, matching reserved bits `[31:7]`,
+  and bounding all three descriptor walkers by the array size. This changes
+  neither allocation sizes nor the driver ABI.
 - DKMS metadata for automatic rebuilds after kernel updates.
 - Local DKMS `.deb` packaging through `make deb`.
 - Default build narrowed to the maintained network/RDMA modules: `qed`,
@@ -72,15 +81,22 @@ Build a local DKMS `.deb` package:
 make deb
 ```
 
-Install it on the target Debian/Ubuntu host:
+After building and validating the package, install it on the target
+Debian/Ubuntu host:
 
 ```sh
-sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint1_all.deb
+sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint2_all.deb
 ```
 
 The package installs source into `/usr/src/qlgc-fastlinq-8.70.12.0`, installs
 the required `qed` firmware and udev files, and uses DKMS to build `qed`,
 `qede` and `qedr` for the running kernel.
+
+The new `linux7maint2` `.deb` has not yet been built, and its package upgrade
+path has not been fully tested. The source and DKMS validation described below
+does not establish package validation. The existing package upgrade flow
+rebuilds the running kernel; other installed kernels need explicit review and
+rebuilding as described in `PACKAGING.md`.
 
 ## Requirements
 
@@ -135,7 +151,7 @@ make deb-path
 make deb-info
 ```
 
-For a new maintenance package:
+To specify the current maintenance version explicitly:
 
 ```sh
 make deb DEB_VERSION=8.70.12.0-linux7maint2
@@ -145,7 +161,35 @@ See `PACKAGING.md` for the full release flow.
 
 ## Verification
 
-This maintained baseline was validated on Linux `7.0.0-22-generic` with:
+### Current source and DKMS validation
+
+For `8.70.12.0-linux7maint2`:
+
+- DKMS build and install completed on Ubuntu `7.0.0-29-generic`,
+  `7.0.0-30-generic` and `7.0.0-31-generic` for `qed`, `qede` and `qedr`.
+- Installed module files matched the DKMS outputs. Each QLogic module present
+  in the checked initramfs images matched its installed/DKMS copy. Both
+  initramfs-tools and dracut image-generation paths were verified.
+- `tests/test_qedr_umem_compat.py` covered modern headers with and without the
+  iterator, the legacy API, 4 KiB and 64 KiB page sizes, count arithmetic and
+  exact-symbol detection.
+- `tests/test_qed_attention_bounds.py` exercised the actual descriptor table,
+  BB translation and initialization logic with inert user-space mocks. It
+  verified 32-bit coverage for all nine rows, AH/BB parity masks and bounded
+  rejection of the original short row, with UBSAN checks.
+- A Hyper-V VF booted `7.0.0-31-generic` with the updated module and link up;
+  no UBSAN report was observed during that boot.
+
+The bare-metal PF reboot regression for the original attention failure is
+still pending. A successful VF boot does not exercise that PF initialization
+path. Existing optional RDMA/tunnel messages and module-signature trust
+warnings were not addressed by these fixes. Signing artifacts alone do not
+establish Secure Boot trust.
+
+### Historical baseline validation
+
+The initial maintenance baseline was validated on Linux
+`7.0.0-22-generic` with:
 
 ```sh
 make clean

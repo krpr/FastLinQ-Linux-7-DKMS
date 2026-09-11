@@ -1,0 +1,56 @@
+diff --git a/qed-8.70.12.0/src/qed_int.c b/qed-8.70.12.0/src/qed_int.c
+index 0f504d17..09f4ef4c 100644
+--- a/qed-8.70.12.0/src/qed_int.c
++++ b/qed-8.70.12.0/src/qed_int.c
+@@ -1164,8 +1164,9 @@ static struct aeu_invert_reg aeu_descs[NUM_ATTN_REGS] = {
+ 	   NULL, BLOCK_PGLCS},
+ 	  {"PCIe hot reset", ATTENTION_SINGLE,
+ 	   NULL, BLOCK_PGLCS},
++	  /* Bits 7 through 31 are reserved. */
+ 	  {"Reserved_Invert_9 %d", FIELD_VALUE(ATTENTION_LENGTH,
+-					       9), NULL,
++					       25), NULL,
+ 	   MAX_BLOCK_ID},
+ 	  }
+ 	 },
+@@ -1458,7 +1459,8 @@ static int qed_int_deassertion(struct qed_hwfn *p_hwfn, u16 deasserted_bits)
+ 		if (!parities)
+ 			continue;
+ 
+-		for (j = 0, bit_idx = 0; bit_idx < 32; j++) {
++		for (j = 0, bit_idx = 0;
++		     j < ARRAY_SIZE(p_aeu->bits) && bit_idx < 32; j++) {
+ 			struct aeu_invert_reg_bit *p_bit = &p_aeu->bits[j];
+ 
+ 			if (qed_int_is_parity_flag(p_hwfn, p_bit) &&
+@@ -1496,7 +1498,9 @@ static int qed_int_deassertion(struct qed_hwfn *p_hwfn, u16 deasserted_bits)
+ 			 * to current group, making them responsible for the
+ 			 * previous assertion.
+ 			 */
+-			for (j = 0, bit_idx = 0; bit_idx < 32; j++) {
++			for (j = 0, bit_idx = 0;
++			     j < ARRAY_SIZE(sb_attn_sw->p_aeu_desc[i].bits) &&
++			     bit_idx < 32; j++) {
+ 				long unsigned int bitmask;
+ 				u8 bit, bit_len;
+ 
+@@ -1797,7 +1801,8 @@ static void qed_int_sb_attn_init(struct qed_hwfn *p_hwfn,
+ 				 void *sb_virt_addr, dma_addr_t sb_phy_addr)
+ {
+ 	struct qed_sb_attn_info *sb_info = p_hwfn->p_sb_attn;
+-	int i, j, k;
++	unsigned int j;
++	int i, k;
+ 
+ 	sb_info->sb_attn = sb_virt_addr;
+ 	sb_info->sb_phys = sb_phy_addr;
+@@ -1809,7 +1814,8 @@ static void qed_int_sb_attn_init(struct qed_hwfn *p_hwfn,
+ 	memset(sb_info->parity_mask, 0, sizeof(u32) * NUM_ATTN_REGS);
+ 	for (i = 0; i < NUM_ATTN_REGS; i++) {
+ 		/* j is array index, k is bit index */
+-		for (j = 0, k = 0; k < 32; j++) {
++		for (j = 0, k = 0;
++		     j < ARRAY_SIZE(aeu_descs[i].bits) && k < 32; j++) {
+ 			struct aeu_invert_reg_bit *p_aeu;
+ 
+ 			p_aeu = &aeu_descs[i].bits[j];

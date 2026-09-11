@@ -3,6 +3,75 @@
 This changelog tracks the maintained Debian/Ubuntu fork of the QLogic/Cavium
 FastLinQ 8.70.12.0 driver package.
 
+## 8.70.12.0-linux7maint2 - 2026-09-12
+
+Maintenance fixes for Ubuntu `7.0.0-31` DKMS compilation and the `qed`
+attention descriptor array overrun. The upstream driver and DKMS version
+remain `8.70.12.0`; only the Debian package version advances.
+
+### Fixed
+
+- Fixed the `qedr` compatibility probe to detect the exact
+  `ib_umem_num_dma_blocks` symbol. Ubuntu `7.0.0-31` headers removed
+  `rdma_umem_for_each_dma_block` but retained the counting helper; probing for
+  the iterator incorrectly selected the unavailable legacy
+  `ib_umem_page_count` API and broke compilation.
+- Preserved existing queue counts in firmware 4 KiB pages, MR counts in
+  `PAGE_SIZE` pages and the legacy counting fallback.
+- Corrected the ninth `qed` AEU descriptor row's reserved length from 9 to 25
+  bits, matching the register specification's reserved bits `[31:7]`. The old
+  row covered only 16 bits and allowed descriptor walks to enter zero padding
+  and overrun the 32-entry array.
+- Added array-size bounds to all three attention descriptor walkers and made
+  the initialization descriptor index unsigned. No flexible-array layout,
+  allocation size or driver ABI was changed.
+
+### Added
+
+- Added `tests/test_qedr_umem_compat.py` for modern headers with and without
+  the removed iterator, the legacy API, 4 KiB/64 KiB page sizes, count
+  arithmetic and exact-symbol detection.
+- Added `tests/test_qed_attention_bounds.py` to exercise the actual descriptor
+  table, BB translation and initialization logic through inert user-space
+  mocks. Coverage includes all nine 32-bit rows, AH/BB parity masks, UBSAN and
+  bounded rejection of the original short row.
+
+### Changed
+
+- Updated the default Debian package version and installation examples to
+  `8.70.12.0-linux7maint2`.
+- Replaced the suggested repository name with the public
+  [krpr/FastLinQ-Linux-7-DKMS](https://github.com/krpr/FastLinQ-Linux-7-DKMS)
+  project identity.
+- Documented that the existing package upgrade flow rebuilds the running
+  kernel; other installed kernels need explicit review and rebuilding as
+  described in `PACKAGING.md`.
+
+### Verification
+
+- Completed DKMS build and install of `qed`, `qede` and `qedr` on Ubuntu
+  `7.0.0-29-generic`, `7.0.0-30-generic` and `7.0.0-31-generic`.
+- Verified that installed module files matched the DKMS outputs. Each QLogic
+  module present in the checked initramfs images matched its installed/DKMS
+  copy, covering both initramfs-tools and dracut image-generation paths.
+- Passed the user-space UMEM compatibility and attention bounds regression
+  tests described above, including UBSAN checks for the descriptor logic.
+- Booted a Hyper-V VF on `7.0.0-31-generic` with the updated module and link
+  up, with no UBSAN report observed during that boot.
+
+### Known limitations
+
+- The bare-metal PF reboot regression for the original attention failure is
+  still pending. The VF boot does not exercise that PF initialization path.
+- These results validate the source patches and DKMS modules. The new
+  `linux7maint2` `.deb` has not been built, and its package upgrade path has not
+  been fully tested. See `PACKAGING.md` for the required package checks and
+  multi-kernel upgrade handling.
+- Existing optional RDMA/tunnel messages and module-signature trust warnings
+  were not changed. Signing artifacts alone do not establish Secure Boot
+  trust.
+- `qedf` and `qedi` remain outside the maintained default module set.
+
 ## 8.70.12.0-linux7-maint.1 - 2026-06-08
 
 Initial maintenance baseline for Linux 7.0 on Debian/Ubuntu.

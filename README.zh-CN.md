@@ -3,11 +3,24 @@
 这是一个非官方 Debian/Ubuntu 后期维护分支，基于原 QLogic/Cavium FastLinQ
 Linux 驱动包 `8.70.12.0`，目标是适配 Linux 7.0 内核，并提供 DKMS 化部署。
 
-建议的 GitHub 仓库名：
+项目仓库：[krpr/FastLinQ-Linux-7-DKMS](https://github.com/krpr/FastLinQ-Linux-7-DKMS)。
 
-```text
-fastlinq-linux7-dkms
-```
+## 当前维护版：8.70.12.0-linux7maint2
+
+2026-09-12 发布，包含两项修复：
+
+- **Ubuntu `7.0.0-31` DKMS 编译失败**：QEDR 直接检测实际使用的
+  `ib_umem_num_dma_blocks`，避免旧迭代器宏被移除后误选已失效的
+  `ib_umem_page_count` 兼容分支。
+- **QED attention 描述表越界**：第九组寄存器的保留位为 7–31，修正描述长度
+  `9 → 25`，并为三处遍历增加数组边界，处理 PF 初始化时的 UBSAN 报错。
+
+Debian 维护包版本更新为 `8.70.12.0-linux7maint2`；上游驱动和 DKMS 注册版本
+仍为 `8.70.12.0`。完整变更见 [中文 Changelog](CHANGELOG.zh-CN.md)。
+
+已有维护包的升级脚本只重建当前运行内核。保留多个内核时，请按
+[维护包升级说明](PACKAGING.md#upgrading-maintenance-revisions)为其他所需内核
+重建，并检查启动镜像。
 
 ## 维护范围
 
@@ -67,7 +80,7 @@ make deb
 在目标 Debian/Ubuntu 主机上安装：
 
 ```sh
-sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint1_all.deb
+sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint2_all.deb
 ```
 
 该包会把源码安装到 `/usr/src/qlgc-fastlinq-8.70.12.0`，安装 `qed` 所需固件和
@@ -126,7 +139,7 @@ make deb-path
 make deb-info
 ```
 
-发布新的维护包时可以指定版本：
+显式指定本维护版的包版本：
 
 ```sh
 make deb DEB_VERSION=8.70.12.0-linux7maint2
@@ -134,7 +147,21 @@ make deb DEB_VERSION=8.70.12.0-linux7maint2
 
 完整发布流程见 `PACKAGING.md`。
 
-## 验证记录
+## 本次修复的验证
+
+- `qed`、`qede`、`qedr` 已在 Ubuntu `7.0.0-29-generic`、`7.0.0-30-generic`、
+  `7.0.0-31-generic` 上完成实际 DKMS 编译和安装。
+- 磁盘模块与 DKMS 构建产物的 SHA256 一致；启动镜像中所含 QLogic 模块也与
+  对应新产物一致。initramfs-tools 和 dracut 两种镜像生成流程均完成验证。
+- 用户态回归测试覆盖新旧 UMEM API、4 KiB/64 KiB 系统页和 36 组页计数用例；
+  attention 测试使用 UBSAN 检查九组描述、AH/BB 变体及预期中断掩码。
+- Hyper-V VF 环境已启动并加载修复后的模块，链路正常。裸金属 PF 初始化场景
+  的重启回归验证尚未完成，VF 结果不能替代它。
+
+上述部署使用源码补丁；本维护版 `.deb` 尚未进行完整的包升级验证。测试与
+独立补丁分别位于 [tests](tests) 和 [patches](patches)。
+
+## 早期维护基线验证
 
 维护基线已在 Linux `7.0.0-22-generic` 上验证：
 

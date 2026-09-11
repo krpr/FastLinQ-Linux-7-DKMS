@@ -20,7 +20,7 @@ if [ -z "$dkms_name" ] || [ -z "$dkms_version" ]; then
 fi
 
 deb_package=${DEB_PACKAGE:-${dkms_name}-dkms}
-deb_version=${DEB_VERSION:-${dkms_version}-linux7maint1}
+deb_version=${DEB_VERSION:-${dkms_version}-linux7maint2}
 deb_arch=${DEB_ARCH:-all}
 maintainer=${DEB_MAINTAINER:-FastLinQ Maintainers <root@localhost>}
 

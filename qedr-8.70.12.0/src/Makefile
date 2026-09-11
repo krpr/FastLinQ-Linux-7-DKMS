@@ -361,7 +361,9 @@ ifneq ($(shell grep "dmasync" $(ib_umem_h) > /dev/null 2>&1 && echo ib_umem_dmas
 	override EXTRA_CFLAGS += -D_HAS_IB_UMEM_GET_DMASYNC
 endif
 
-ifneq ($(shell grep "rdma_umem_for_each_dma_block" $(ib_umem_h) > /dev/null 2>&1 && echo rdma_umem_for_each_dma_block),)
+# Probe the counting helper used by qedr_compat.h directly. Newer kernels can
+# remove rdma_umem_for_each_dma_block while retaining ib_umem_num_dma_blocks.
+ifneq ($(shell grep -w "ib_umem_num_dma_blocks" $(ib_umem_h) > /dev/null 2>&1 && echo ib_umem_num_dma_blocks),)
 	        override EXTRA_CFLAGS += -D_HAS_UMEM_DMA_BLOCK
 endif
 

@@ -110,13 +110,13 @@ make deb
 The generated package is written to `dist/`, for example:
 
 ```sh
-dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint1_all.deb
+dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint2_all.deb
 ```
 
 Install it with `apt` so dependencies are resolved:
 
 ```sh
-sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint1_all.deb
+sudo apt install ./dist/qlgc-fastlinq-dkms_8.70.12.0-linux7maint2_all.deb
 ```
 
 This package installs the driver source into `/usr/src/qlgc-fastlinq-8.70.12.0`,
@@ -125,6 +125,11 @@ and install `qed`, `qede` and `qedr` for the running kernel. It does not ship
 prebuilt `.ko` files, because those are tied to one exact kernel build.
 
 See `PACKAGING.md` for the maintained package build and release flow.
+
+When upgrading an existing maintenance package, follow
+[Upgrading maintenance revisions](PACKAGING.md#upgrading-maintenance-revisions)
+to rebuild every kernel you intend to boot; the existing package upgrade
+scripts initially rebuild only the running kernel.
 
 ## Kernel updates
 
